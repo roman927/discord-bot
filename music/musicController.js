@@ -1,26 +1,28 @@
 const axios = require('axios');
-const api_key = process.env.API_KEY;
 const {VoiceChannel} = require('discord.js');
 const ytdl = require('ytdl-core');
+const API_KEY = process.env.API_KEY;
 
-
-async function playSong(message, songUrl) {
-  checkVoiceChannel(message);
-  const connection = await message.member.voice.channel.join();
-  const dispatcher = connection.play(ytdl(songUrl, {filter: 'audioonly'}));
+async function playSingle(message, songUrl) {
+  const connection = await createConnection(message);
+  if (connection === undefined) return message.channel.send('You need to be in a voice channel before using commands');
+  const dispatcher = connection.play(ytdl(songUrl, {filter: 'audioonly', highWaterMark: 1<<25}))
+  .on('finish', () => {
+    console.log('Song finished');
+  });
   dispatcher.setVolume(0.4);
 }
 
 async function stopSong(message) {
   const voiceChannel = message.member.voice.channel;
-  checkVoiceChannel(message);
+  if(!validateVoiceChannel(message)) return undefined;
   voiceChannel.leave();
   console.log("leaving channel by order");
   return undefined;
 }
 
 async function resumeQueue(message, songs) {
-  const connection = await message.member.voice.channel.join();
+  const connection = await createConnection(message);
   console.log(`Now playing ${songs[0]}`);
   connection.play(ytdl(songs[0]), {filter: 'audioonly'})
     .on('finish', () => {
@@ -30,10 +32,12 @@ async function resumeQueue(message, songs) {
 }
 
 async function skipQueue(message, songs) {
+  if (!validateVoiceChannel(message)) return undefined;
   songs.shift();
   console.log(`Songs state: ${songs}`);
   resumeQueue(message, songs);
-  return message.channel.send(`Succesfuly skiped song`);
+  message.channel.send(`Succesfuly skiped song`);
+  return songs;
 }
 
 function checkVideoId(videoId) {
@@ -42,9 +46,12 @@ function checkVideoId(videoId) {
   return false;
 }
 
-function checkVoiceChannel(message) {
+function validateVoiceChannel(message) {
   const voiceChannel = message.member.voice.channel;
-  if (!voiceChannel) return message.channel.send("You need to join a voice channel first");
+  if (!voiceChannel) {
+    message.channel.send("You need to join a voice channel first");
+    return false;  
+  }
 
   const permissions = voiceChannel.permissionsFor(voiceChannel.client.user);
   if (!permissions.has('CONNECT')) return message.channel.send("I don't have permissions to join that channel");
@@ -55,7 +62,7 @@ function checkVoiceChannel(message) {
 async function createConnection(message) {
   // TODO: get to use this function or delete it
   const voiceChannel = message.member.voice.channel;
-  checkVoiceChannel(message);
+  if (!validateVoiceChannel(message)) return undefined;
   try {
     var connection = await voiceChannel.join();
   } catch (err) {
@@ -67,21 +74,27 @@ async function createConnection(message) {
 }
 
 async function searchSong(keywords) {
-  let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${keywords}&key=${api_key}`
-  let data = '';
+  // TODO: Display message if api quote has been reached
+  let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${keywords}&key=${API_KEY}`
   let watch_url = "https://www.youtube.com/watch?v=";
   let song = {"title": '', "url": ''};
-  let resp = await axios.get(url);
+  let resp = undefined;
+  try {
+    resp = await axios.get(url);
+  } catch (err) {
+    return undefined;
+  }
+  console.log(resp.data);
   let songId = resp.data.items[0].id.videoId;
   song.title = resp.data.items[0].snippet.title;
   song.url = watch_url.concat(songId);
   return song;
 }
 
-
 async function muteVolume(message, volumeDirection) {
-  // TODO: set the volume down by 0.2 points
-
+  // TODO: - set the volume down by 0.2 points
+  //       - get to receive the dispatcher
+  return;
 }
 
 async function downVolume(message, volumeDirection) {
@@ -99,4 +112,4 @@ async function addPlaylist(queue, plUrl) {
 
   return queue;
 }
-module.exports = {playSong, stopSong, resumeQueue, skipQueue, searchSong};
+module.exports = {playSingle, stopSong, resumeQueue, skipQueue, searchSong, validateVoiceChannel};

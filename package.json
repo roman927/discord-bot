@@ -13,7 +13,6 @@
     "@google-cloud/local-auth": "^1.0.0",
     "axios": "^0.20.0",
     "discord.js": "^12.3.1",
-    "distube": "^2.5.1",
     "dotenv": "^8.2.0",
     "ffmpeg": "0.0.4",
     "ffmpeg-static": "^4.2.7",

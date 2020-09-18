@@ -1,20 +1,26 @@
 const axios = require('axios');
-const {VoiceChannel} = require('discord.js');
 const ytdl = require('ytdl-core');
-const API_KEY = process.env.API_KEY;
+const API_KEY = process.env.API_KEY; 
 
 async function playSingle(message, songUrl) {
+
   const connection = await createConnection(message);
+
   if (connection === undefined) return message.channel.send('You need to be in a voice channel before using commands');
   const dispatcher = connection.play(ytdl(songUrl, {filter: 'audioonly', highWaterMark: 1<<25}))
   .on('finish', () => {
     console.log('Song finished');
   });
+
   dispatcher.setVolume(0.4);
+  console.log(dispatcher);
+  return dispatcher;
 }
 
 async function stopSong(message) {
+
   const voiceChannel = message.member.voice.channel;
+
   if(!validateVoiceChannel(message)) return undefined;
   voiceChannel.leave();
   console.log("leaving channel by order");
@@ -22,7 +28,9 @@ async function stopSong(message) {
 }
 
 async function resumeQueue(message, songs) {
+
   const connection = await createConnection(message);
+
   console.log(`Now playing ${songs[0]}`);
   connection.play(ytdl(songs[0]), {filter: 'audioonly'})
     .on('finish', () => {
@@ -32,7 +40,9 @@ async function resumeQueue(message, songs) {
 }
 
 async function skipQueue(message, songs) {
+
   if (!validateVoiceChannel(message)) return undefined;
+
   songs.shift();
   console.log(`Songs state: ${songs}`);
   resumeQueue(message, songs);
@@ -60,7 +70,6 @@ function validateVoiceChannel(message) {
 }
 
 async function createConnection(message) {
-  // TODO: get to use this function or delete it
   const voiceChannel = message.member.voice.channel;
   if (!validateVoiceChannel(message)) return undefined;
   try {
@@ -69,12 +78,10 @@ async function createConnection(message) {
     console.log(`There was an error while connecting: ${err}`);
     return message.channel.send("There was an error while connecting");
   }
-  console.log(connection);
   return connection;
 }
 
 async function searchSong(keywords) {
-  // TODO: Display message if api quote has been reached
   let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${keywords}&key=${API_KEY}`
   let watch_url = "https://www.youtube.com/watch?v=";
   let song = {"title": '', "url": ''};
@@ -84,27 +91,10 @@ async function searchSong(keywords) {
   } catch (err) {
     return undefined;
   }
-  console.log(resp.data);
   let songId = resp.data.items[0].id.videoId;
   song.title = resp.data.items[0].snippet.title;
   song.url = watch_url.concat(songId);
   return song;
-}
-
-async function muteVolume(message, volumeDirection) {
-  // TODO: - set the volume down by 0.2 points
-  //       - get to receive the dispatcher
-  return;
-}
-
-async function downVolume(message, volumeDirection) {
-  // TODO: set the volume down by 0.2 points
-
-}
-
-async function upVolume(message, volumeDirection) {
-  // TODO: set the volume up by 0.2 points
-
 }
 
 async function addPlaylist(queue, plUrl) {

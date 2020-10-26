@@ -128,7 +128,6 @@ client.on('message', async message => {
 
 function commandIsValid(command) {
   let order = command.slice(1).split(" ");
-  console.log(order);
   if (order[0] === "play" || order[0] === "add") {
 
       if (order[1].startsWith(watchUrl) && order.length > 2) return false;

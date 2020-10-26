@@ -12,7 +12,7 @@ async function playSingle(message, songUrl) {
     console.log('Song finished');
   });
 
-  dispatcher.setVolume(0.4);
+  dispatcher.setVolume(1);
   console.log(dispatcher);
   return dispatcher;
 }
